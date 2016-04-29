@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>BlackCarp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font: 13px Helvetica, Arial;
+            background: #000000;
+        }
+
+        form {
+            background: #000000;
+            padding: 2px;
+            bottom: 0;
+            width: 100%;
+        }
+
+            form input {
+                border: 0;
+                padding: 10px;
+                width: 90%;
+                margin-right: .5%;
+            }
+
+            form button {
+                width: 9%;
+                border: none;
+                padding: 9px;
+            }
+
+        img {
+            width: auto;
+            height: 160px;
+            border: 2px solid transparent;
+        }
+
+        #title {
+            color: #2567b7;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        #text {
+            color: #000000;
+            padding-left: 1%;
+        }
+
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            word-wrap: break-word;
+        }
+
+            #messages li {
+                padding: 1px 5px;
+                background: #eee;
+            }
+    </style>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <div id="bottom"></div>
+    <form action="">
+        <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+
+    <script src="https://code.jquery.com/jquery-2.2.3.min.js"
+            integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo="
+            crossorigin="anonymous">
+    </script>
+    <script>
+        var Port = "10000";
+        var HostName = "ws://localhost:" + Port + "/blackcarp";
+        var LastNick = "";
+
+        if (location.hostname.length > 0)
+            HostName = "ws://93.138.104.214:" + Port + "/blackcarp";
+        //HostName = "ws://" + location.hostname + ":" + Port + "/blackcarp";
+        var Socket = new WebSocket(HostName);
+
+        function splitAt(value, index) {
+            return [value.substring(0, index), value.substring(index)];
+        }
+
+        Socket.onopen = function (e) {
+            AppendMessage("INFO", "Connected to server");
+        };
+        Socket.onclose = function (e) {
+            AppendMessage("INFO", "Disconnected from server");
+        }
+        Socket.onmessage = function (e) {
+            var Data = splitAt(e.data, 1);
+            if (Data[0] == '0')
+                AppendMessage("Stranger", Data[1]);
+            else
+                AppendMessage("SERVER", Data[1]);
+        }
+
+        function AppendMessage(Nick, Msg) {
+            var Msgs = $('#messages');
+            var MsgEntry = $('<li>');
+
+            if (Nick.length > 0 && LastNick != Nick) {
+                LastNick = Nick;
+                MsgEntry.append($('<p id="title">').text(Nick));
+            }
+            MsgEntry.append($('<p id="text">').text(Msg));
+
+            var MsgSplit = Msg.split(' ');
+            for (var i = 0; i < MsgSplit.length; i++) {
+                var MsgPart = MsgSplit[i];
+
+                if (!Msg.startsWith(".") && (
+                    MsgPart.endsWith(".png") || MsgPart.endsWith(".apng")
+                    || MsgPart.endsWith(".bmp")
+                    || MsgPart.endsWith(".jpg") || MsgPart.endsWith(".jpeg")
+                    || MsgPart.endsWith(".gif")
+                    )) {
+
+                    MsgEntry.append($('<img src="' + MsgPart + '">'))
+                }
+            }
+
+
+            Msgs.append(MsgEntry);
+            $('#bottom').get(0).scrollIntoView();
+        }
+
+        function SendMessage(Msg) {
+            if (Msg.length < 2048) {
+                AppendMessage("You", Msg);
+                Socket.send(Msg);
+            } else
+                AppendMessage("INFO", "Message too long");
+        }
+
+        $('form').submit(function () {
+            var MsgText = $('#m').val().trim();
+            if (MsgText.length > 0) {
+                $('#m').val('');
+                SendMessage(MsgText);
+            }
+            return false;
+        });
+    </script>
+</body>
+</html>
