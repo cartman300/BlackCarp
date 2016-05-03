@@ -79,17 +79,12 @@
     </script>
     <script>
         var Port = "10000";
-        var HostName = "ws://localhost:" + Port + "/blackcarp";
         var LastNick = "";
+        var HostName = "ws://black.carp.tk:" + Port + "/blackcarp";
+        if (window.location.hostname.length == 0)
+            HostName = "ws://localhost:" + Port + "/blackcarp";
 
-        if (location.hostname.length > 0)
-            HostName = "ws://93.138.104.214:" + Port + "/blackcarp";
-        //HostName = "ws://" + location.hostname + ":" + Port + "/blackcarp";
         var Socket = new WebSocket(HostName);
-
-        function splitAt(value, index) {
-            return [value.substring(0, index), value.substring(index)];
-        }
 
         Socket.onopen = function (e) {
             AppendMessage("INFO", "Connected to server");
@@ -103,6 +98,10 @@
                 AppendMessage("Stranger", Data[1]);
             else
                 AppendMessage("SERVER", Data[1]);
+        }
+
+        function splitAt(value, index) {
+            return [value.substring(0, index), value.substring(index)];
         }
 
         function AppendMessage(Nick, Msg) {

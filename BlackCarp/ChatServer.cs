@@ -34,6 +34,7 @@ namespace BlackCarp {
 		public static void OnOpen(ChatClient C) {
 			if (!Clients.Contains(C)) {
 				Clients.Add(C);
+				Program.Print("{0} joined", C);
 				Lobby.Enqueue(C);
 			}
 		}
@@ -63,9 +64,11 @@ namespace BlackCarp {
 		public bool Valid;
 		public Action<ChatClient, string> OnMessageEvent;
 		public Action<ChatClient> OnClosedEvent;
+		IPEndPoint EndPoint;
 
 		protected override void OnOpen() {
 			Valid = true;
+			EndPoint = Context.UserEndPoint;
 			ChatServer.OnOpen(this);
 		}
 
@@ -75,7 +78,11 @@ namespace BlackCarp {
 				OnClosedEvent(this);
 			ChatServer.OnClose(this);
 		}
-		
+
+		protected override void OnError(WebSocketSharp.ErrorEventArgs e) {
+			Program.Print("Error in {0}", this);
+		}
+
 		protected override void OnMessage(MessageEventArgs e) {
 			if (e.IsText && OnMessageEvent != null)
 				OnMessageEvent(this, e.Data);
@@ -87,7 +94,7 @@ namespace BlackCarp {
 		}
 
 		public override string ToString() {
-			return string.Format("Client({0})", ClientID);
+			return string.Format("({0}, {1})", ClientID, EndPoint);
 		}
 	}
 }
