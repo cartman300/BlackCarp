@@ -12,6 +12,10 @@ namespace BlackCarp {
 			Clients = new LinkedList<ChatClient>();
 		}
 
+		public static bool Contains(ChatClient C) {
+			return Clients.Contains(C);
+		}
+
 		public static int GetCount() {
 			lock (Clients) {
 				return Clients.Count;

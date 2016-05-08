@@ -28,10 +28,18 @@ namespace BlackCarp {
 
 		static Action<ChatClient> CreateClosedRoute(ChatClient To) {
 			return (This) => {
+				To.OnMessageEvent = This.OnMessageEvent = null;
+				To.OnClosedEvent = This.OnClosedEvent = null;
 				Print("{0} and {1} unlinked", This, To);
 				ChatServer.SendMessage("Other party disconnected", MessageType.ServerInfo, To);
 				Lobby.Enqueue(To);
 			};
+		}
+
+		static void StartThread(ThreadStart A) {
+			Thread T = new Thread(A);
+			T.IsBackground = true;
+			T.Start();
 		}
 
 		static void Main(string[] args) {
@@ -39,7 +47,7 @@ namespace BlackCarp {
 			ChatServer.Init();
 			int LogFile = 0;
 
-			Thread Dispatcher = new Thread(() => {
+			StartThread(() => {
 				while (true) {
 					while (Lobby.GetCount() < 2)
 						Thread.Sleep(100);
@@ -54,13 +62,18 @@ namespace BlackCarp {
 					A.OnClosedEvent = CreateClosedRoute(B);
 					B.OnMessageEvent = CreateMessageRoute(A, LogFileName);
 					B.OnClosedEvent = CreateClosedRoute(A);
-
+					
 					Print("{0} and {1} linked", A, B);
 					ChatServer.SendMessage("Found partner", MessageType.ServerInfo, new[] { A, B });
 				}
 			});
-			Dispatcher.IsBackground = true;
-			Dispatcher.Start();
+
+			StartThread(() => {
+				while (true) {
+					Thread.Sleep(10000);
+					ChatServer.Purge();
+				}
+			});
 
 			Print("Server started");
 			while (true)

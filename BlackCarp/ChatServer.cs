@@ -15,7 +15,7 @@ namespace BlackCarp {
 	}
 
 	static class ChatServer {
-		static WebSocketServer WSS;
+		public static WebSocketServer WSS;
 		static List<ChatClient> Clients;
 
 		public static void Init() {
@@ -23,6 +23,13 @@ namespace BlackCarp {
 			WSS = new WebSocketServer(IPAddress.Any, 10000);
 			WSS.AddWebSocketService<ChatClient>("/blackcarp");
 			WSS.Start();
+		}
+
+		public static void Purge() {
+			ChatClient[] Cl = Clients.ToArray();
+			for (int i = 0; i < Cl.Length; i++)
+				if ((DateTime.Now - Cl[i].LastMessage > TimeSpan.FromMinutes(3)))
+					Drop(Cl[i], "AFK");
 		}
 
 		public static IEnumerable<ChatClient> GetClientsExcept(params ChatClient[] Except) {
@@ -55,6 +62,11 @@ namespace BlackCarp {
 			foreach (var C in Clients)
 				SendMessage(Msg, T, C);
 		}
+
+		public static void Drop(ChatClient C, string Reason) {
+			SendMessage("Dropped from server: " + Reason, MessageType.ServerInfo, C);
+			C.Drop();
+		}
 	}
 
 	class ChatClient : WebSocketBehavior {
@@ -64,10 +76,12 @@ namespace BlackCarp {
 		public bool Valid;
 		public Action<ChatClient, string> OnMessageEvent;
 		public Action<ChatClient> OnClosedEvent;
+		public DateTime LastMessage;
 		IPEndPoint EndPoint;
 
 		protected override void OnOpen() {
 			Valid = true;
+			LastMessage = DateTime.Now;
 			EndPoint = Context.UserEndPoint;
 			ChatServer.OnOpen(this);
 		}
@@ -84,6 +98,7 @@ namespace BlackCarp {
 		}
 
 		protected override void OnMessage(MessageEventArgs e) {
+			LastMessage = DateTime.Now;
 			if (e.IsText && OnMessageEvent != null)
 				OnMessageEvent(this, e.Data);
 		}
@@ -91,6 +106,10 @@ namespace BlackCarp {
 		public void SendMessage(string Msg) {
 			if (Valid)
 				Send(Msg);
+		}
+
+		public void Drop(CloseStatusCode Code = CloseStatusCode.Normal) {
+			Context.WebSocket.Close(Code);
 		}
 
 		public override string ToString() {
